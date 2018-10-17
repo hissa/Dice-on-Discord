@@ -45,9 +45,6 @@ class DumyConfigurationProvider{
 }
 
 class Random{
-    // next(max){
-    //     return Math.floor(Math.random() * Math.floor(max));
-    // }
     next(min, max){
         return Math.floor(Math.random() * Math.floor(max + min)) - min;
     }
@@ -63,22 +60,19 @@ class App{
 
     run(){
         this.client.on("message", msg => {
-            if (msg.channel.name != "ワードウルフ") {
+            if (!this.provider.channelNames.includes(msg.channel.name)) {
                 return;
             }
-            if (msg.content == "seed") {
-                let rand = this.random.next(10000)
-                msg.channel.send(`--${rand}----------------`);
+            if(!this.provider.trigger.includes(msg.content)){
+                return;
             }
-            if (msg.content == "line") {
-                let rand = this.random.next(10000)
-                msg.channel.send(`-------------------------`);
-            }
+            let rand = this.random.next(this.provider.min, this.provider.max);
+            // テンプレートを指定してセンドする
         });
         this.client.login(this.provider.secret);
     }
 }
 
-const app = new App(new DumyConfigurationProvider());
+const app = new App(new ConfigurationProvider());
 app.run();
 console.log("running");
