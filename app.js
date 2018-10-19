@@ -3,10 +3,6 @@ class ConfigurationProvider{
         this.config = require("./config.json");
     }
 
-    get id(){
-        return this.config.client_id;
-    }
-
     get secret(){
         return this.config.client_secret;
     }
@@ -19,7 +15,7 @@ class ConfigurationProvider{
         return this.config.template_string;
     }
 
-    get trigegr(){
+    get triggers(){
         return this.config.trigger_strings;
     }
 
@@ -32,47 +28,47 @@ class ConfigurationProvider{
     }
 }
 
-class DumyConfigurationProvider{
-    constructor(){
-        this.id = "";
-        this.secret = "";
-        this.channelNames = [];
-        this.templateString = "";
-        this.trigger = "";
-        this.randomMax = 0;
-        this.randomMin = 0;
-    }
-}
-
 class Random{
     next(min, max){
+        // 間違ってません？
         return Math.floor(Math.random() * Math.floor(max + min)) - min;
     }
 }
 
 class App{
-    constructor(configurationProvider){
-        let discord = require("discord.js");
-        this.client = new discord.Client();
+    constructor(configuration){
+        this.targetChannels = configuration.channelNames;
+        this.template = configuration.templateString;
+        this.triggers = configuration.triggers;
+        this.randomMax = configuration.randomMax;
+        this.randomMin = configuration.randomMin;
         this.random = new Random();
-        this.provider = configurationProvider;
     }
 
-    run(){
-        this.client.on("message", msg => {
-            if (!this.provider.channelNames.includes(msg.channel.name)) {
-                return;
-            }
-            if(!this.provider.trigger.includes(msg.content)){
-                return;
-            }
-            let rand = this.random.next(this.provider.min, this.provider.max);
-            // テンプレートを指定してセンドする
-        });
-        this.client.login(this.provider.secret);
+    hasResponce(text, channel){
+        if(!this.targetChannels.includes(channel)){
+            return false;
+        }
+        if(!this.triggers.includes(text)){
+            return false;
+        }
+        return true;
+    }
+
+    publish(){
+        let rand = this.random.next(this.randomMin, this.randomMax);
+        return this.template.replace(/\$rnd/, rand);
     }
 }
 
-const app = new App(new ConfigurationProvider());
-app.run();
-console.log("running");
+let discord = require("discord.js");
+let client = new discord.Client();
+let provider = new ConfigurationProvider();
+const app = new App(provider);
+client.on("message", msg => {
+    if(app.hasResponce(msg.channel)){
+        msg.channel.send(app.publish());
+    }
+});
+client.login(provider.secret);
+console.log("Connecting...");
